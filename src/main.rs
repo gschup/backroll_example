@@ -49,7 +49,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let num_players = opt.players.len();
     assert!(num_players > 0);
 
+    // udp socket
     let listen_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), opt.local_port);
+    let socket = UdpManager::bind(pool.clone(), listen_addr)?;
 
     // create a backroll session
     let mut sess_builder = P2PSession::<BackrollConfig>::build().with_frame_delay(0);
@@ -61,7 +63,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             local_handle = sess_builder.add_player(Player::Local);
         } else {
             // remote players
-            let socket = UdpManager::bind(pool.clone(), listen_addr)?;
             let peer = socket.connect(UdpConnectionConfig::unbounded(player_addr.parse()?));
             sess_builder.add_player(Player::Remote(peer));
         }
