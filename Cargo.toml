@@ -1,0 +1,16 @@
+[package]
+name = "backroll_test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+macroquad = "0.3"
+structopt = "0.3"
+backroll = "0.3"
+backroll_transport_udp = "0.2.0"
+bytemuck = {version = "1.7", features = ["derive"]}
+bevy_tasks = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
