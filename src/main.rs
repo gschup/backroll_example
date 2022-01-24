@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // time variables for tick rate
     let mut last_update = Instant::now();
     let mut accumulator = Duration::ZERO;
-    let fps_delta = 1. / FPS as f64;
+    let fps_delta = 1. / FPS;
 
     loop {
         // frames are only happening if the sessions are synchronized
@@ -87,9 +87,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             last_update = Instant::now();
 
             // if enough time is accumulated, we run a frame
-            while accumulator.as_secs_f64() > fps_delta {
+            while accumulator.as_secs_f32() > fps_delta {
                 // decrease accumulator
-                accumulator = accumulator.saturating_sub(Duration::from_secs_f64(fps_delta));
+                accumulator = accumulator.saturating_sub(Duration::from_secs_f32(fps_delta));
                 let local_input = game.local_input(local_handle);
                 sess.add_local_input(local_handle, local_input)?;
                 let cmds = sess.advance_frame();

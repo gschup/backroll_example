@@ -10,7 +10,7 @@ use crate::BackrollConfig;
 
 type Frame = i32;
 
-pub const FPS: u64 = 60;
+pub const FPS: f32 = 60.0;
 const CHECKSUM_PERIOD: i32 = 100;
 const NULL_FRAME: Frame = -1;
 
@@ -24,8 +24,8 @@ const INPUT_DOWN: u8 = 1 << 1;
 const INPUT_LEFT: u8 = 1 << 2;
 const INPUT_RIGHT: u8 = 1 << 3;
 
-const MOVEMENT_SPEED: f32 = 15.0 / FPS as f32;
-const ROTATION_SPEED: f32 = 2.5 / FPS as f32;
+const MOVEMENT_SPEED: f32 = 15.0 / FPS;
+const ROTATION_SPEED: f32 = 2.5 / FPS;
 const MAX_SPEED: f32 = 7.0;
 const FRICTION: f32 = 0.98;
 
@@ -51,13 +51,13 @@ impl GameState {
         let mut velocities = Vec::new();
         let mut rotations = Vec::new();
 
-        let r = WINDOW_WIDTH as f32 / 4.0;
+        let r = WINDOW_WIDTH / 4.0;
 
         for i in 0..num_players as i32 {
             let rot = i as f32 / num_players as f32 * 2.0 * std::f32::consts::PI;
-            let x = WINDOW_WIDTH as f32 / 2.0 + r * rot.cos();
-            let y = WINDOW_HEIGHT as f32 / 2.0 + r * rot.sin();
-            positions.push((x as f32, y as f32));
+            let x = WINDOW_WIDTH / 2.0 + r * rot.cos();
+            let y = WINDOW_HEIGHT / 2.0 + r * rot.sin();
+            positions.push((x, y));
             velocities.push((0.0, 0.0));
             rotations.push((rot + std::f32::consts::PI) % (2.0 * std::f32::consts::PI));
         }
@@ -155,8 +155,8 @@ fn fletcher16(data: &[u8]) -> u16 {
 pub struct Game {
     num_players: usize,
     game_state: GameState,
-    last_checksum: (Frame, u64),
-    periodic_checksum: (Frame, u64),
+    last_checksum: (Frame, u16),
+    periodic_checksum: (Frame, u16),
 }
 
 impl Game {
@@ -188,7 +188,7 @@ impl Game {
         // remember checksum to render it later
         // it is very inefficient to serialize the gamestate here just for the checksum
         let buffer = bincode::serialize(&self.game_state).unwrap();
-        let checksum = fletcher16(&buffer) as u64;
+        let checksum = fletcher16(&buffer);
         self.last_checksum = (self.game_state.frame, checksum);
         if self.game_state.frame % CHECKSUM_PERIOD == 0 {
             self.periodic_checksum = (self.game_state.frame, checksum);
