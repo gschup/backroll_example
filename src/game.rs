@@ -1,6 +1,6 @@
 use backroll::{
     command::{Command, Commands},
-    GameInput, PlayerHandle,
+    Event, GameInput, PlayerHandle,
 };
 use bytemuck::*;
 use macroquad::prelude::*;
@@ -157,6 +157,7 @@ pub struct Game {
     game_state: GameState,
     last_checksum: (Frame, u16),
     periodic_checksum: (Frame, u16),
+    wait_frames: u8,
 }
 
 impl Game {
@@ -167,6 +168,7 @@ impl Game {
             game_state: GameState::new(num_players),
             last_checksum: (NULL_FRAME, 0),
             periodic_checksum: (NULL_FRAME, 0),
+            wait_frames: 0,
         }
     }
 
@@ -176,8 +178,16 @@ impl Game {
                 Command::Save(save) => save.save_without_hash(self.game_state.clone()),
                 Command::Load(load) => self.game_state = load.load(),
                 Command::AdvanceFrame(inputs) => self.advance_frame(inputs),
-                Command::Event(event) => println!("Event: {:?}", event),
+                Command::Event(event) => self.handle_event(event),
             }
+        }
+    }
+
+    fn handle_event(&mut self, event: Event) {
+        println!("Event: {:?}", event);
+        match event {
+            Event::TimeSync { frames_ahead } => self.wait_frames = frames_ahead,
+            _ => (),
         }
     }
 
@@ -239,40 +249,29 @@ impl Game {
     }
 
     // creates a compact representation of currently pressed keys
-    pub fn local_input(&self, handle: PlayerHandle) -> PlayerInput {
+    pub fn local_input(&self, _handle: PlayerHandle) -> PlayerInput {
         let mut buttons_pressed: u8 = 0;
-
-        // player 1 with WASD
-        if handle.0 == 0 {
-            if is_key_down(KeyCode::W) {
-                buttons_pressed |= INPUT_UP;
-            }
-            if is_key_down(KeyCode::A) {
-                buttons_pressed |= INPUT_LEFT;
-            }
-            if is_key_down(KeyCode::S) {
-                buttons_pressed |= INPUT_DOWN;
-            }
-            if is_key_down(KeyCode::D) {
-                buttons_pressed |= INPUT_RIGHT;
-            }
+        if is_key_down(KeyCode::W) {
+            buttons_pressed |= INPUT_UP;
         }
-        // player 2 with arrow keys
-        if handle.0 == 1 {
-            if is_key_down(KeyCode::Up) {
-                buttons_pressed |= INPUT_UP;
-            }
-            if is_key_down(KeyCode::Left) {
-                buttons_pressed |= INPUT_LEFT;
-            }
-            if is_key_down(KeyCode::Down) {
-                buttons_pressed |= INPUT_DOWN;
-            }
-            if is_key_down(KeyCode::Right) {
-                buttons_pressed |= INPUT_RIGHT;
-            }
+        if is_key_down(KeyCode::A) {
+            buttons_pressed |= INPUT_LEFT;
+        }
+        if is_key_down(KeyCode::S) {
+            buttons_pressed |= INPUT_DOWN;
+        }
+        if is_key_down(KeyCode::D) {
+            buttons_pressed |= INPUT_RIGHT;
         }
 
         PlayerInput { buttons_pressed }
+    }
+
+    pub fn should_wait(&self) -> bool {
+        self.wait_frames > 0
+    }
+
+    pub fn wait(&mut self) {
+        self.wait_frames -= 1;
     }
 }

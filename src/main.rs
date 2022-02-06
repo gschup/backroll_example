@@ -79,6 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fps_delta = 1. / FPS;
 
     loop {
+        game.handle_commands(sess.poll());
         // get delta time from last iteration and accumulate it
         let delta = Instant::now().duration_since(last_update);
         accumulator = accumulator.saturating_add(delta);
@@ -88,13 +89,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         while accumulator.as_secs_f32() > fps_delta {
             // decrease accumulator
             accumulator = accumulator.saturating_sub(Duration::from_secs_f32(fps_delta));
-            // input is only added if the sessions are synchronized
-            if sess.is_synchronized() {
+
+            if game.should_wait() {
+                game.wait()
+            } else {
                 let local_input = game.local_input(local_handle);
-                sess.add_local_input(local_handle, local_input)?;
+                match sess.add_local_input(local_handle, local_input) {
+                    Ok(_) => {
+                        let cmds = sess.advance_frame();
+                        game.handle_commands(cmds);
+                    }
+                    Err(e) => println!("{e}"),
+                }
             }
-            let cmds = sess.advance_frame();
-            game.handle_commands(cmds);
         }
 
         game.render();
